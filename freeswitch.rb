@@ -13,6 +13,12 @@ class Freeswitch < Formula
     sha256 "f2d73136027050dc82f3ce4d9e6f131f07a6cf15fba1d2b02c2012eacd1cb525" => :el_capitan
   end
 
+  option "with-amqp", "Install amqp"
+  option "with-shout", "Install shout"
+  option "with-libyuv", "Install libyuv"
+  option "with-libvpx", "Install libvpx"
+  option "with-freetype", "Install freetype"
+
   option "without-moh", "Do not install music-on-hold"
   option "without-sounds-en", "Do not install English (Callie) sounds"
   option "with-sounds-fr", "Install French (June) sounds"
@@ -24,12 +30,14 @@ class Freeswitch < Formula
   depends_on "libtool" => :build
   depends_on "pkg-config" => :build
   depends_on "yasm" => :build
+  depends_on "linnik/libshout/libshout" => :build
+  depends_on "linnik/rabbitmq-c/rabbitmq-c" => :build
+  depends_on "linnik/pcre/pcre" => :build
   depends_on "jpeg"
   depends_on "libsndfile"
   depends_on "lua"
   depends_on "openssl"
   depends_on "opus"
-  depends_on "pcre"
   depends_on "speex"
   depends_on "speexdsp"
   depends_on "sqlite"
@@ -143,6 +151,49 @@ class Freeswitch < Formula
   #------------------------ End sound file resources --------------------------
 
   def install
+
+    # --- custom ---
+    ENV.prepend_path "PKG_CONFIG_PATH", "/usr/local/lib/pkgconfig/"
+    inreplace "build/modules.conf.in", /^codecs/, "#codecs"
+
+    args = []
+    if build.with?("freetype")
+      ENV.append_to_cflags "-I#{Formula["freetype"].opt_include}/freetype2/"
+    else
+      args << "--without-freetype"
+    end
+
+    if build.with?("lua")
+      ENV.append_to_cflags "-I#{Formula["lua"].opt_include}/lua/"
+    else
+      inreplace "build/modules.conf.in", "languages/mod_lua",
+                "#languages/mod_lua"
+    end
+
+    if build.with?("amqp")
+      inreplace "build/modules.conf.in", "#event_handlers/mod_amqp",
+                "event_handlers/mod_amqp"
+    end
+
+    if build.with?("shout")
+      inreplace "build/modules.conf.in", "#formats/mod_shout",
+                "formats/mod_shout"
+    end
+
+    if build.with?("libyuv")
+      raise "Building with libyuv is not supported yet"
+    else
+      args << "--disable-libyuv"
+    end
+
+    if build.with?("libvpx")
+      raise "Building with libvpx is not supported yet"
+    else
+      args << "--disable-libvpx"
+    end
+
+    # --- end of custom ---
+
     ENV["ac_cv_lib_lzma_lzma_code"] = "no" # prevent opportunistic linkage to xz
 
     # avoid a dependency on ldns to prevent OpenSSL version conflicts
@@ -158,7 +209,12 @@ class Freeswitch < Formula
                           "--enable-shared",
                           "--enable-static",
                           "--prefix=#{prefix}",
-                          "--exec_prefix=#{prefix}"
+                          "--exec_prefix=#{prefix}",
+                          *args,
+                          "LIBS=#{ENV['LIBS']}",
+                          "CFLAGS=#{ENV['CFLAGS']}",
+                          "CXXFLAGS=#{ENV['CFLAGS']}",
+                          "LDFLAGS=#{ENV['LDFLAGS']}"
 
     system "make"
     system "make", "install", "all"
