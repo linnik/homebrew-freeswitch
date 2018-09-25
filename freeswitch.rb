@@ -7,10 +7,9 @@ class Freeswitch < Formula
   head "https://freeswitch.org/stash/scm/fs/freeswitch.git"
 
   bottle do
-    sha256 "52f44a6e3713c7c5d47f4fc6a78416c7ddddfdf69ee23e7c2caef02f1e47733e" => :mojave
-    sha256 "a44ff9765d3a79e6caf363f94c144ee62139320b274f70c56000d839dec618ad" => :high_sierra
-    sha256 "52aa9f65dbcff17203256154422092c74195c795f50cb10b4c7182e4dcc1361b" => :sierra
-    sha256 "f2d73136027050dc82f3ce4d9e6f131f07a6cf15fba1d2b02c2012eacd1cb525" => :el_capitan
+    root_url "https://github.com/linnik/homebrew-freeswitch/releases/download/1.6.20"
+    cellar :any
+    sha256 "1d74f8c099e6e6663bae9721eaa0c0a39a853fae16f8996ec77e8570f384b1a7" => :high_sierra
   end
 
   option "with-amqp", "Install amqp"
